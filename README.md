@@ -1,6 +1,8 @@
 # Proyecto Integrador: Web App de Gestión de Usuarios y Datos
 ### Departamento de Desarrollo Backend
 
+**Repositorio en GitHub:** [tritrom/TP-Integrador-JS](https://github.com/tritrom/TP-Integrador-JS)
+
 Este proyecto representa el desarrollo progresivo de una aplicación web profesional de servidor, diseñada bajo arquitectura modular utilizando el ecosistema de **Node.js** y **Express.js** [4]. Está preparado para escalar hacia la persistencia de datos relacionales utilizando **PostgreSQL** y el ORM **Sequelize** [5].
 
 ---
@@ -19,7 +21,7 @@ Sigue estos pasos detallados para configurar el entorno de desarrollo localmente
 
 1. **Clonar el repositorio:**
    ```bash
-   git clone https://github.com/tu-usuario/nombre-de-tu-proyecto.git
+   git clone https://github.com/tritrom/TP-Integrador-JS.git
    cd nombre-de-tu-proyecto
    ```
 
