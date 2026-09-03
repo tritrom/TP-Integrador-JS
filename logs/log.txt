@@ -4,3 +4,9 @@
 [02-09-2026 - 5:36:40 p. m.] Ruta accedida: /
 [02-09-2026 - 5:36:43 p. m.] Ruta accedida: /favicon.ico
 [02-09-2026 - 5:45:40 p. m.] Ruta accedida: /
+[02-09-2026 - 5:49:24 p. m.] Ruta accedida: /
+[02-09-2026 - 5:54:02 p. m.] Ruta accedida: /.well-known/appspecific/com.chrome.devtools.json
+[02-09-2026 - 5:55:25 p. m.] Ruta accedida: /
+[02-09-2026 - 5:55:25 p. m.] Ruta accedida: /.well-known/appspecific/com.chrome.devtools.json
+[02-09-2026 - 6:13:38 p. m.] Ruta accedida: /
+[02-09-2026 - 6:13:38 p. m.] Ruta accedida: /status

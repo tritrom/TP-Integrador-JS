@@ -4,6 +4,9 @@ const path = require('path');       // Módulo nativo de Node.js para gestionar 
 const fs = require('fs');           // Módulo nativo para interactuar con el sistema de archivos planos [7, 8]
 require('dotenv').config();         // Carga de variables de entorno desde el archivo .env [2, 5]
 
+const pool = require('./config/db');          // Pool de conexiones a MySQL [mysql2]
+const usuariosRoutes = require('./routes/usuarios'); // Rutas de la entidad usuarios
+
 // 2. Inicialización de la aplicación Express
 const app = express();
 const PORT = process.env.PORT || 3000; // Configuración dinámica del puerto mediante variables de entorno [2]
@@ -13,6 +16,9 @@ app.use(express.json()); // Permite que nuestro servidor entienda y procese dato
 
 // Configuración del middleware express.static() para servir archivos estáticos desde /public [6]
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Montaje de las rutas de la entidad "usuarios" [mysql2]
+app.use('/api/usuarios', usuariosRoutes);
 
 // 4. Middleware de registro personalizado (Persistencia básica)
 // Este middleware intercepta las visitas y registra los accesos en el archivo plano logs/log.txt [7, 8]
@@ -83,7 +89,29 @@ app.get('/status', (req, res) => {
 });
 
 // 6. Arranque del servidor y escucha de peticiones [1, 2]
-app.listen(PORT, () => {
-    // Imprime el mensaje en consola requerido para validar la inicialización [1]
-    console.log(`Servidor iniciado de manera exitosa en el puerto: ${PORT}`);
+async function iniciarServidor() {
+    try {
+        // Verifica la conexión a la base de datos antes de ponerse en línea [mysql2]
+        const conectado = await pool.query('SELECT 1');
+        if (conectado) {
+            console.log('Conexión a la base de datos MySQL establecida correctamente.');
+        }
+    } catch (err) {
+        console.error('No se pudo conectar a la base de datos:', err.message);
+        console.error('Verificá que MySQL esté en ejecución y que las credenciales en .env sean correctas.');
+        process.exit(1);
+    }
+
+    app.listen(PORT, () => {
+        // Imprime el mensaje en consola requerido para validar la inicialización [1]
+        console.log(`Servidor iniciado de manera exitosa en el puerto: ${PORT}`);
+    });
+}
+
+// Middleware de manejo centralizado de errores.
+app.use((err, req, res, next) => {
+    console.error(err);
+    res.status(500).json({ error: 'Error interno del servidor.', detalle: err.message });
 });
+
+iniciarServidor();
