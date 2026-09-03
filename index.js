@@ -5,7 +5,11 @@ const fs = require('fs');           // Módulo nativo para interactuar con el si
 require('dotenv').config();         // Carga de variables de entorno desde el archivo .env [2, 5]
 
 const pool = require('./config/db');          // Pool de conexiones a MySQL [mysql2]
+const sequelize = require('./config/sequelize'); // Instancia de Sequelize (ORM)
+require('./models');                           // Carga y asocia los modelos (Usuario, Pedido)
 const usuariosRoutes = require('./routes/usuarios'); // Rutas de la entidad usuarios
+const transaccionesRoutes = require('./routes/transacciones'); // Rutas transaccionales
+const ormRoutes = require('./routes/orm');     // Rutas con Sequelize
 
 // 2. Inicialización de la aplicación Express
 const app = express();
@@ -19,6 +23,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Montaje de las rutas de la entidad "usuarios" [mysql2]
 app.use('/api/usuarios', usuariosRoutes);
+
+// Montaje de las operaciones transaccionales [lección 4]
+app.use('/api/transacciones', transaccionesRoutes);
+
+// Montaje de las rutas que usan Sequelize (ORM) [lección 5 y 6]
+app.use('/api/orm', ormRoutes);
 
 // 4. Middleware de registro personalizado (Persistencia básica)
 // Este middleware intercepta las visitas y registra los accesos en el archivo plano logs/log.txt [7, 8]
@@ -96,6 +106,10 @@ async function iniciarServidor() {
         if (conectado) {
             console.log('Conexión a la base de datos MySQL establecida correctamente.');
         }
+
+        // Verifica la conexión del ORM (Sequelize) [lección 5]
+        await sequelize.authenticate();
+        console.log('Conexión a la base de datos mediante Sequelize (ORM) establecida correctamente.');
     } catch (err) {
         console.error('No se pudo conectar a la base de datos:', err.message);
         console.error('Verificá que MySQL esté en ejecución y que las credenciales en .env sean correctas.');

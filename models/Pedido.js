@@ -1,35 +1,39 @@
-// Modelo "Usuario" con Sequelize sobre la tabla existente "usuarios".
+// Modelo "Pedido" con Sequelize sobre la tabla "pedidos".
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/sequelize');
 
-const Usuario = sequelize.define('Usuario', {
+const Pedido = sequelize.define('Pedido', {
     id: {
         type: DataTypes.INTEGER.UNSIGNED,
         autoIncrement: true,
         primaryKey: true,
     },
-    nombre: {
-        type: DataTypes.STRING(100),
+    usuario_id: {
+        type: DataTypes.INTEGER.UNSIGNED,
         allowNull: false,
     },
-    email: {
-        type: DataTypes.STRING(150),
+    descripcion: {
+        type: DataTypes.STRING(255),
         allowNull: false,
-        unique: true,
     },
-    saldo: {
+    total: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
         defaultValue: 0,
     },
-    creado_en: {
+    estado: {
+        type: DataTypes.STRING(30),
+        allowNull: false,
+        defaultValue: 'pendiente',
+    },
+    fecha: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,
     },
 }, {
-    tableName: 'usuarios',
+    tableName: 'pedidos',
     timestamps: false,
     underscored: true,
 });
 
-module.exports = Usuario;
+module.exports = Pedido;

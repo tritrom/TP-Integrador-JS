@@ -153,3 +153,51 @@ Se optó por registrar específicamente el evento de **visita de rutas públicas
 1.  **Modularidad desde el Día Uno:** El mayor desafío al comenzar un proyecto backend no es hacer que el servidor funcione en local, sino anticipar el crecimiento de la lógica. Estructurar el proyecto de forma modular desde la primera fase, dividiendo la ruta, el middleware y el punto de entrada, asegura una transición limpia para las siguientes fases que requerirán autenticación JWT y operaciones CRUD complejas sobre PostgreSQL [5, 6, 7].
 2.  **La Importancia del Middleware:** El middleware de logs implementado demuestra la versatilidad de Express para interceptar peticiones [15, 20]. Comprender este flujo de intercepción y asincronía es fundamental, pues este mismo mecanismo será reutilizado en la Fase 3 para proteger rutas utilizando JSON Web Tokens (JWT) y validar permisos de usuario de forma centralizada [6].
 3.  **Preparación para Producción:** El uso inteligente de variables de entorno mediante `dotenv` garantiza que la aplicación sea portable y segura [11, 12, 20]. Esto nos permitirá cambiar entre bases de datos de desarrollo y producción de forma totalmente transparente en las próximas entregas simplemente modificando el archivo de variables local, respetando las mejores prácticas de la industria de software de nube.
+
+---
+
+## 🗄️ Fase 2: Persistencia Relacional (CRUD, Transacciones y ORM)
+
+### ¿Por qué elegí `mysql2` como cliente de conexión?
+Elegí **`mysql2`** porque:
+*   Trabaja con **promesas y `async/await` nativos** de Node.js, evitando el "callback hell".
+*   Soporta **pool de conexiones** (`mysql.createPool`), reutilizando conexiones y mejorando el rendimiento bajo carga.
+*   Proporciona **placeholders nombrados** y escape de consultas **preparadas** (`?`), protegiendo contra inyección SQL.
+*   Es el cliente compatible con el servidor **MySQL 8** que elegimos, ligero y sin dependencias pesadas.
+
+### ¿Cómo se protegen los datos sensibles?
+*   **Credenciales fuera del repositorio:** el archivo `.env` (con `DB_USER`, `DB_PASSWORD`, `DB_NAME`) está **ignorado por `.gitignore`** y no se versiona. Se subió un `.env.example` con valores de muestra.
+*   **Mínimos privilegios:** la aplicación no usa `root`; opera con un usuario dedicado `wallet_user` que tiene permisos **solo sobre `wallet_db`**.
+*   **Exclusión del historial de Git:** las credenciales se **rotaron** y se **limpió el historial** del repositorio para eliminar cualquier rastro previo del `.env`.
+*   **Sin exposición de errores internos:** el middleware de manejo de errores devuelve un mensaje genérico al cliente y guarda el detalle técnico en consola.
+*   **Consultas preparadas** para evitar inyección SQL.
+
+### CRUD: validaciones aplicadas y actualización de campos
+*   **PUT /usuarios/:id**: se actualizan **solo los campos presentes** en el cuerpo de la petición (`nombre`, `email`, `saldo`) en lugar de sobrescribir todo el registro. Esto evita borrar datos por error cuando se envía un objeto parcial y reduce la superficie de cambios.
+*   **Validaciones:**
+    *   `nombre` y `email` **obligatorios** en creación; `saldo` numérico si se envía.
+    *   Verificación de **existencia del ID** antes de actualizar/eliminar (404 si no existe).
+    *   **ID inválido** (no numérico) rechazado con 400.
+    *   **Email duplicado** detectado (`ER_DUP_ENTRY`) con respuesta 409.
+    *   Errores de conexión/consulta centralizados con respuesta 500 y mensaje útil.
+
+### Transaccionalidad
+La operación `POST /api/transacciones/registro` registra un **usuario** y crea su **historial** en una **transacción**:
+*   `beginTransaction()` → acción 1 (insert usuario) → acción 2 (insert historial) → `commit()`.
+*   Si **cualquier paso falla**, se ejecuta `rollback()` y **no quedan datos a medias**.
+*   Cada fallo queda registrado en el archivo plano `logs/transacciones_fallidas.txt` y en consola.
+*   **Verificado:** al forzar un error (monto no numérico) el usuario no quedó registrado, demostrando el rollback.
+
+### Ventajas del ORM (Sequelize) frente al cliente SQL tradicional
+*   **Abstracción de la base de datos:** se trabaja con objetos JS en lugar de escribir SQL repetitivo; `findAll`, `findByPk`, `create` reemplazan consultas manuales.
+*   **Mapeo de relaciones sencillo:** la asociación `Usuario.hasMany(Pedido)` se consulta con **`include`**, trayendo datos anidados en una sola operación (Lección 6).
+*   **Menos errores de tipeo SQL** y validaciones a nivel de modelo.
+*   **Portabilidad:** cambiar de MySQL a PostgreSQL (u otra) suele requerir solo ajustar el dialecto.
+*   Mantenemos **ambos enfoques** (`mysql2` y Sequelize) y una ruta de **comparación** que confirma que los resultados coinciden (`/api/orm/comparar`).
+
+### Endpoints habilitados en esta fase
+*   `GET/api/usuarios` · `GET/api/usuarios/:id` · `POST /api/usuarios` · `PUT /api/usuarios/:id` · `DELETE /api/usuarios/:id` — CRUD clásico (con filtro opcional `?nombre=`).
+*   `POST /api/transacciones/registro` — operación transaccional (usuario + historial).
+*   `GET/api/orm/usuarios` — listado mediante ORM.
+*   `GET/api/orm/comparar` — comparación SQL manual vs ORM.
+*   `GET/api/orm/usuarios/:id/pedidos` — usuario con sus pedidos (relación 1:N vía `include`).
