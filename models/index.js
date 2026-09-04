@@ -1,5 +1,5 @@
 // Definición de relaciones entre modelos (Lección 6: Usuario tiene muchos Pedidos).
-const Usuario = require('./Usuario');
+const Usuario = require('./UserSequelize');
 const Pedido = require('./Pedido');
 
 Usuario.hasMany(Pedido, { foreignKey: 'usuario_id', as: 'pedidos' });

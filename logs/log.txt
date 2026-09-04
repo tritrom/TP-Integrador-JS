@@ -14,3 +14,8 @@
 [02-09-2026 - 9:53:50 p. m.] Ruta accedida: /status
 [02-09-2026 - 9:54:22 p. m.] Ruta accedida: /
 [02-09-2026 - 9:57:37 p. m.] Ruta accedida: /status
+[02-09-2026 - 11:48:48 p. m.] Ruta accedida: /
+[03-09-2026 - 11:17:19 p. m.] Ruta accedida: /
+[03-09-2026 - 11:41:24 p. m.] Ruta accedida: /
+[03-09-2026 - 11:56:29 p. m.] Ruta accedida: /api/usuarios
+[03-09-2026 - 11:59:03 p. m.] Ruta accedida: /
