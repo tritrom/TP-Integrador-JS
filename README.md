@@ -3,7 +3,8 @@
 
 **Repositorio en GitHub:** [tritrom/TP-Integrador-JS](https://github.com/tritrom/TP-Integrador-JS)
 
-**Capturas de pantalla del funcionamiento:** [Google Drive](https://drive.google.com/drive/folders/14nh6itGznguENi0bqFt4QtQ_S1hVI1PL?usp=sharing)
+**Capturas de pantalla del funcionamiento (Parte 1):** [Google Drive](https://drive.google.com/drive/folders/14nh6itGznguENi0bqFt4QtQ_S1hVI1PL?usp=sharing)
+**Capturas de Postman (Parte 2 - Módulo 7):** [Google Drive](https://drive.google.com/drive/folders/1tzixWTSZ2p1jyYMNgP8lqjDlgABOfESb?hl=es)
 
 Este proyecto representa el desarrollo progresivo de una aplicación web profesional de servidor, diseñada bajo arquitectura modular utilizando el ecosistema de **Node.js** y **Express.js** [4]. Está preparado para escalar hacia la persistencia de datos relacionales utilizando **PostgreSQL** y el ORM **Sequelize** [5].
 
