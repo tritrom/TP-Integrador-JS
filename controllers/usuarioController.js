@@ -29,8 +29,11 @@ async function obtenerUno(req, res, next) {
 async function crear(req, res, next) {
     try {
         const { nombre, email, saldo } = req.body;
-        if (!nombre || !email) {
-            return res.status(400).json({ error: 'Los campos nombre y email son obligatorios.' });
+        if (!nombre || !String(nombre).trim()) {
+            return res.status(400).json({ error: 'El campo nombre es obligatorio.' });
+        }
+        if (!email || !String(email).trim()) {
+            return res.status(400).json({ error: 'El campo email es obligatorio.' });
         }
         if (saldo !== undefined && Number.isNaN(Number(saldo))) {
             return res.status(400).json({ error: 'El saldo debe ser numérico.' });
@@ -60,6 +63,12 @@ async function actualizar(req, res, next) {
         }
 
         const { nombre, email, saldo } = req.body;
+        if (nombre !== undefined && !String(nombre).trim()) {
+            return res.status(400).json({ error: 'El campo nombre no puede estar vacío.' });
+        }
+        if (email !== undefined && !String(email).trim()) {
+            return res.status(400).json({ error: 'El campo email no puede estar vacío.' });
+        }
         if (saldo !== undefined && Number.isNaN(Number(saldo))) {
             return res.status(400).json({ error: 'El saldo debe ser numérico.' });
         }

@@ -10,3 +10,6 @@ node_modules/
 
 # Archivos de logs generados localmente
 logs/*.txt
+
+# Archivos subidos por los usuarios en tiempo de ejecución
+public/uploads/

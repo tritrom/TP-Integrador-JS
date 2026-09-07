@@ -1,15 +1,17 @@
 // 1. Importación de dependencias y módulos esenciales
 const express = require('express'); // Framework principal para levantar nuestro servidor web [4, 5]
 const path = require('path');       // Módulo nativo de Node.js para gestionar rutas de archivos
-const fs = require('fs');           // Módulo nativo para interactuar con el sistema de archivos planos [7, 8]
 require('dotenv').config();         // Carga de variables de entorno desde el archivo .env [2, 5]
 
 const pool = require('./config/db');          // Pool de conexiones a MySQL [mysql2]
 const sequelize = require('./config/sequelize'); // Instancia de Sequelize (ORM)
 require('./models');                           // Carga y asocia los modelos (Usuario, Pedido)
+const logger = require('./middlewares/logger'); // Logger de accesos (archivo plano)
 const usuariosRoutes = require('./routes/usuarios'); // Rutas de la entidad usuarios
 const transaccionesRoutes = require('./routes/transacciones'); // Rutas transaccionales
 const ormRoutes = require('./routes/orm');     // Rutas con Sequelize
+const authRoutes = require('./routes/auth');   // Rutas de autenticación (login + JWT)
+const uploadRoutes = require('./routes/upload'); // Rutas de subida de archivos
 
 // 2. Inicialización de la aplicación Express
 const app = express();
@@ -17,6 +19,9 @@ const PORT = process.env.PORT || 3000; // Configuración dinámica del puerto me
 
 // 3. Middlewares integrados
 app.use(express.json()); // Permite que nuestro servidor entienda y procese datos en formato JSON
+
+// Middleware de registro de accesos (persistencia en logs/log.txt)
+app.use(logger);
 
 // Configuración del middleware express.static() para servir archivos estáticos desde /public [6]
 app.use(express.static(path.join(__dirname, 'public')));
@@ -30,35 +35,11 @@ app.use('/api/transacciones', transaccionesRoutes);
 // Montaje de las rutas que usan Sequelize (ORM) [lección 5 y 6]
 app.use('/api/orm', ormRoutes);
 
-// 4. Middleware de registro personalizado (Persistencia básica)
-// Este middleware intercepta las visitas y registra los accesos en el archivo plano logs/log.txt [7, 8]
-app.use((req, res, next) => {
-    const logDirectory = path.join(__dirname, 'logs');
-    const logFilePath = path.join(logDirectory, 'log.txt');
-    
-    // Asegurar que la carpeta 'logs' exista antes de escribir
-    if (!fs.existsSync(logDirectory)) {
-        fs.mkdirSync(logDirectory, { recursive: true });
-    }
+// Montaje de las rutas de autenticación (login y JWT) [módulo 8]
+app.use('/api', authRoutes);
 
-    // Obtener la fecha y hora local actual
-    const now = new Date();
-    const fecha = now.toLocaleDateString();
-    const hora = now.toLocaleTimeString();
-    const rutaAccedida = req.originalUrl; // Captura la ruta exacta que visitó el usuario [7, 8]
-
-    // Estructura de registro mínima exigida: fecha, hora y ruta accedida [8]
-    const logEntry = `[${fecha} - ${hora}] Ruta accedida: ${rutaAccedida}\n`;
-
-    // Escritura asíncrona no bloqueante sin sobrescribir registros previos [7, 8]
-    fs.appendFile(logFilePath, logEntry, (err) => {
-        if (err) {
-            console.error('Error al escribir en el log:', err);
-        }
-    });
-
-    next(); // Cede el control al siguiente middleware o ruta
-});
+// Montaje de las rutas de subida de archivos [módulo 8]
+app.use('/api', uploadRoutes);
 
 // 5. Definición de las Rutas Públicas Exigidas [6]
 
@@ -124,6 +105,17 @@ async function iniciarServidor() {
 
 // Middleware de manejo centralizado de errores.
 app.use((err, req, res, next) => {
+    // Errores de multer: archivo demasiado grande o tipo no permitido (respuestas 400 amigables).
+    if (err && (err.name === 'MulterError' || err.code === 'LIMIT_FILE_SIZE')) {
+        return res.status(400).json({ error: err.message || 'Error al subir el archivo.' });
+    }
+    if (err && err.message && err.message.includes('no permitido')) {
+        return res.status(400).json({ error: err.message });
+    }
+    // Body con JSON malformado.
+    if (err && err.type === 'entity.parse.failed') {
+        return res.status(400).json({ error: 'JSON inválido en el cuerpo de la petición.' });
+    }
     console.error(err);
     res.status(500).json({ error: 'Error interno del servidor.', detalle: err.message });
 });

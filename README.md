@@ -5,6 +5,7 @@
 
 **Capturas de pantalla del funcionamiento (Parte 1):** [Google Drive](https://drive.google.com/drive/folders/14nh6itGznguENi0bqFt4QtQ_S1hVI1PL?usp=sharing)
 **Capturas de Postman (Parte 2 - Módulo 7):** [Google Drive](https://drive.google.com/drive/folders/1tzixWTSZ2p1jyYMNgP8lqjDlgABOfESb?hl=es)
+**Capturas de Postman (Parte 3 - Módulo 8):** [Google Drive - subcarpeta "Parte 3 - Módulo 8"]() *(agregar enlace de la subcarpeta)*
 
 Este proyecto representa el desarrollo progresivo de una aplicación web profesional de servidor, diseñada bajo arquitectura modular utilizando el ecosistema de **Node.js** y **Express.js** [4]. Está preparado para escalar hacia la persistencia de datos relacionales utilizando **PostgreSQL** y el ORM **Sequelize** [5].
 
@@ -202,3 +203,60 @@ La operación `POST /api/transacciones/registro` registra un **usuario** y crea 
 *   `GET/api/orm/usuarios` — listado mediante ORM.
 *   `GET/api/orm/comparar` — comparación SQL manual vs ORM.
 *   `GET/api/orm/usuarios/:id/pedidos` — usuario con sus pedidos (relación 1:N vía `include`).
+
+---
+
+## 🔐 Parte 3 - Módulo 8: API RESTful, Subida de Archivos y Autenticación JWT
+
+### Diseño RESTful de la API
+La API expone más de **4 endpoints** cubriendo los métodos **GET, POST, PUT y DELETE** sobre el recurso `usuarios` (CRUD completo), más los recursos de autenticación y archivos:
+
+| Método | Ruta | Acceso | Descripción |
+|-------|------|--------|-------------|
+| `GET` | `/api/usuarios` | Público | Lista usuarios (filtro opcional `?nombre=`). |
+| `GET` | `/api/usuarios/:id` | Público | Devuelve un usuario por ID. |
+| `POST` | `/api/usuarios` | Público | Crea un usuario (valida nombre/email/saldo). |
+| `PUT` | `/api/usuarios/:id` | **Protegido (JWT)** | Actualiza campos parciales de un usuario. |
+| `DELETE` | `/api/usuarios/:id` | **Protegido (JWT)** | Elimina un usuario. |
+| `POST` | `/api/login` | Público | Autentica credenciales y emite un **JWT**. |
+| `POST` | `/api/upload` | Público | Sube un archivo de imagen (multipart, campo `archivo`). |
+| `POST` | `/api/upload/perfil/:id` | **Protegido (JWT)** | Sube la imagen y la asocia como foto de perfil del usuario. |
+
+### Arquitectura modular (controllers, routes y middlewares)
+Se aplicó la separación estricta de responsabilidades exigida por el módulo:
+*   `routes/` → define **solo** las rutas HTTP y qué controlador/middleware ejecutan (enrutamiento declarativo).
+*   `controllers/` → concentran la **lógica de negocio** (validaciones, llamadas al modelo, armado de respuestas HTTP).
+*   `middlewares/` → lógica **reutilizable y transversal**: `logger.js` (auditoría de accesos), `authMiddleware.js` (JWT) y `uploadMiddleware.js` (multer).
+*   Ningún controlador contiene definición de rutas y ninguna ruta contiene lógica de negocio.
+
+### Autenticación con JWT
+*   `POST /api/login` recibe `{ email, password }`. La contraseña se compara usando `bcryptjs` contra el hash almacenado en la base (nunca se guarda en texto plano).
+*   Al autenticarse se emite un token firmado con `JWT_SECRET` (variable de entorno) y **expiración de 2 horas** (`expiresIn: '2h'`).
+*   El middleware `verificarToken` protege `PUT` y `DELETE` de usuarios y la subida de foto de perfil. Se envía como `Authorization: Bearer <token>`.
+*   **Comportamiento verificado:** token **válido** → acceso (200); token **expirado**, **inválido** o ausente → `401` con mensaje claro.
+*   El usuario demo para probar login es `admin@test.com` / `Admin123!` (se crea con `node scripts/init_db.js`).
+
+### Subida de archivos con Multer
+*   El middleware `uploadMiddleware.js` usa `multer.diskStorage` y guarda los archivos en `public/uploads/` (carpeta ignorada por `.gitignore`).
+*   **Validaciones:** solo imágenes (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`), tamaño máximo **5 MB**, nombre único (`Date.now()` + aleatorio) para evitar choques.
+*   Tipo no permitido → `400`; archivo demasiado grande → `400` amigable.
+*   La subida pública devuelve la ruta accesible (`/uploads/<archivo>`) servida por `express.static`; la subida protegida además persiste la ruta en la columna `foto_perfil` del usuario.
+
+### Seguridad y buenas prácticas aplicadas
+*   `JWT_SECRET` se define en `.env` (ignorado por Git) y cuenta con fallback solo de desarrollo.
+*   `express.json()` rechaza cuerpos malformados con `400` JSON (no HTML de stack trace).
+*   **Nunca** se responde con credenciales ni con el hash de la contraseña en las respuestas de login o listados.
+*   Las contraseñas del seed demoran el login deliberadamente vía `bcrypt` (hash con 10 rondas).
+
+### Nota de iteraciones
+| Iteración | Cambio |
+|-----------|--------|
+| 1 | Definición de la arquitectura RESTful y refactor a controllers/routes/middlewares. |
+| 2 | Implementación del login con bcrypt + JWT y protección de rutas. |
+| 3 | Subida de archivos con multer, asociación a `foto_perfil` y validación de tipos/tamaño. |
+| 4 | Manejador global de errores (multer, JSON inválido, 500) y documentación. |
+
+### Variables de entorno nuevas
+```env
+JWT_SECRET=clave_secreta_larga_y_segura
+```

@@ -3,6 +3,7 @@
 // Requiere las credenciales de root en las variables de entorno DB_ROOT_* (no se guardan en el código).
 require('dotenv').config();
 const mysql = require('mysql2/promise');
+const bcrypt = require('bcryptjs');
 
 const rootUser = process.env.DB_ROOT_USER || 'root';
 const rootPassword = process.env.DB_ROOT_PASSWORD;
@@ -13,6 +14,16 @@ if (!rootPassword) {
 }
 
 const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
+
+// Verifica si una columna existe en una tabla (para migraciones idempotentes).
+async function existeColumna(conn, tabla, columna) {
+    const [rows] = await conn.query(
+        `SELECT COUNT(*) AS n FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+        [DB_NAME, tabla, columna]
+    );
+    return rows[0].n > 0;
+}
 
 async function init() {
     // Conexión de administrador (root) sin seleccionar base de datos.
@@ -32,19 +43,32 @@ async function init() {
         await admin.query(`CREATE USER IF NOT EXISTS '${DB_USER}'@'%' IDENTIFIED BY '${DB_PASSWORD}'`);
         await admin.query(`GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'%'`);
 
-        // 3. Crear la tabla principal "usuarios".
         await admin.query(`USE \`${DB_NAME}\``);
+
+        // 3. Crear la tabla principal "usuarios".
         await admin.query(`
             CREATE TABLE IF NOT EXISTS usuarios (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 nombre VARCHAR(100) NOT NULL,
                 email VARCHAR(150) NOT NULL UNIQUE,
                 saldo DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                password VARCHAR(255) NULL,
+                foto_perfil VARCHAR(255) NULL,
                 creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
-        // 4. Crear la tabla "historial" (para transacciones y relaciones de la lección 6).
+        // 4. Migración: agregar columnas faltantes (módulo 8) si la tabla ya existía.
+        if (!(await existeColumna(admin, 'usuarios', 'password'))) {
+            await admin.query('ALTER TABLE usuarios ADD COLUMN password VARCHAR(255) NULL');
+            console.log('Columna password agregada a usuarios.');
+        }
+        if (!(await existeColumna(admin, 'usuarios', 'foto_perfil'))) {
+            await admin.query('ALTER TABLE usuarios ADD COLUMN foto_perfil VARCHAR(255) NULL');
+            console.log('Columna foto_perfil agregada a usuarios.');
+        }
+
+        // 5. Crear la tabla "historial" (para transacciones y relaciones de la lección 6).
         await admin.query(`
             CREATE TABLE IF NOT EXISTS historial (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -59,7 +83,7 @@ async function init() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
-        // 5. Tabla "pedidos" para la relación 1:N de la lección 6.
+        // 6. Tabla "pedidos" para la relación 1:N de la lección 6.
         await admin.query(`
             CREATE TABLE IF NOT EXISTS pedidos (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -74,7 +98,7 @@ async function init() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
-        // 6. Datos simulados (al menos 3 usuarios) si la tabla está vacía.
+        // 7. Datos simulados (al menos 3 usuarios) si la tabla está vacía.
         const [cuenta] = await admin.query('SELECT COUNT(*) AS n FROM usuarios');
         if (cuenta[0].n === 0) {
             await admin.query(`
@@ -84,6 +108,17 @@ async function init() {
                 ('Carlos Ruiz', 'carlos@test.com', 87.25)
             `);
             console.log('Se insertaron 3 usuarios de ejemplo.');
+        }
+
+        // 8. Usuario demo para autenticación (módulo 8): admin@test.com / Admin123!
+        const [demo] = await admin.query('SELECT id FROM usuarios WHERE email = ?', ['admin@test.com']);
+        if (demo.length === 0) {
+            const hash = await bcrypt.hash('Admin123!', 10);
+            await admin.query(
+                'INSERT INTO usuarios (nombre, email, saldo, password) VALUES (?, ?, ?, ?)',
+                ['Administrador Demo', 'admin@test.com', 0, hash]
+            );
+            console.log('Usuario demo creado: admin@test.com (password: Admin123!)');
         }
 
         console.log('Base de datos, tablas, usuario de aplicación y datos simulados listos.');

@@ -6,7 +6,7 @@ async function findAll({ nombre } = {}) {
     const filtro = nombre ? 'WHERE nombre LIKE ?' : '';
     const params = nombre ? [`%${nombre}%`] : [];
     const [rows] = await pool.query(
-        `SELECT id, nombre, email, saldo, creado_en FROM usuarios ${filtro} ORDER BY id`,
+        `SELECT id, nombre, email, saldo, foto_perfil, creado_en FROM usuarios ${filtro} ORDER BY id`,
         params
     );
     return rows;
@@ -15,7 +15,7 @@ async function findAll({ nombre } = {}) {
 // Devuelve un usuario por su id.
 async function findById(id) {
     const [rows] = await pool.query(
-        'SELECT id, nombre, email, saldo, creado_en FROM usuarios WHERE id = ?',
+        'SELECT id, nombre, email, saldo, foto_perfil, creado_en FROM usuarios WHERE id = ?',
         [id]
     );
     return rows[0];
@@ -28,6 +28,21 @@ async function create({ nombre, email, saldo }) {
         [nombre, email, saldo ?? 0]
     );
     return findById(result.insertId);
+}
+
+// Busca un usuario por email (incluye password para autenticación).
+async function findByEmail(email) {
+    const [rows] = await pool.query(
+        'SELECT * FROM usuarios WHERE email = ?',
+        [email]
+    );
+    return rows[0];
+}
+
+// Actualiza la foto de perfil de un usuario.
+async function updateFotoPerfil(id, fotoPerfil) {
+    await pool.query('UPDATE usuarios SET foto_perfil = ? WHERE id = ?', [fotoPerfil, id]);
+    return findById(id);
 }
 
 // Actualiza los campos indicados de un usuario existente.
@@ -55,4 +70,4 @@ async function remove(id) {
     return { eliminados: result.affectedRows };
 }
 
-module.exports = { findAll, findById, create, update, remove };
+module.exports = { findAll, findById, create, findByEmail, updateFotoPerfil, update, remove };
