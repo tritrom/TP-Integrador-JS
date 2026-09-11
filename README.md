@@ -5,7 +5,7 @@
 
 **Capturas de pantalla del funcionamiento (Parte 1):** [Google Drive](https://drive.google.com/drive/folders/14nh6itGznguENi0bqFt4QtQ_S1hVI1PL?usp=sharing)
 **Capturas de Postman (Parte 2 - Módulo 7):** [Google Drive](https://drive.google.com/drive/folders/1tzixWTSZ2p1jyYMNgP8lqjDlgABOfESb?hl=es)
-**Capturas de Postman (Parte 3 - Módulo 8):** [Google Drive - subcarpeta "Parte 3 - Módulo 8"]() *(agregar enlace de la subcarpeta)*
+**Capturas de Postman (Parte 3 - Módulo 8):** [Google Drive - subcarpeta "Parte 3 - Módulo 8"](https://drive.google.com/drive/folders/1ybJ09lBDIJS_piVlk40pc8GnUxvDiLbL?hl=es)
 
 Este proyecto representa el desarrollo progresivo de una aplicación web profesional de servidor, diseñada bajo arquitectura modular utilizando el ecosistema de **Node.js** y **Express.js** [4]. Está preparado para escalar hacia la persistencia de datos relacionales utilizando **PostgreSQL** y el ORM **Sequelize** [5].
 
